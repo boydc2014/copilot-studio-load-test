@@ -6,6 +6,7 @@ export interface Config {
   directlineBaseUrl: string;
   targetConcurrency: number;
   skipWarmup: boolean;
+  warmupCooldownMs: number;
   warmupDurationMs: number;
   testDurationMs: number;
   pollIntervalMs: number;
@@ -36,6 +37,7 @@ export function loadConfig(): Config {
       "https://directline.botframework.com/v3/directline",
     targetConcurrency: optionalInt("TARGET_CONCURRENCY", 20),
     skipWarmup: process.env.SKIP_WARMUP === "true",
+    warmupCooldownMs: optionalInt("WARMUP_COOLDOWN_SECONDS", 120) * 1000,
     warmupDurationMs: optionalInt("WARMUP_DURATION_SECONDS", 300) * 1000,
     testDurationMs: optionalInt("TEST_DURATION_SECONDS", 600) * 1000,
     pollIntervalMs: optionalInt("POLL_INTERVAL_MS", 1000),

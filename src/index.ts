@@ -37,6 +37,12 @@ async function main(): Promise<void> {
     printSummary(warmupMetrics);
   }
 
+  // COOLDOWN between phases
+  if (!config.skipWarmup && config.warmupCooldownMs > 0) {
+    console.log(`\nCooldown: waiting ${config.warmupCooldownMs / 1000}s before real test...`);
+    await new Promise((resolve) => setTimeout(resolve, config.warmupCooldownMs));
+  }
+
   // PHASE 2: REAL TEST
   console.log("─── PHASE 2: REAL TEST ──────────────────────────────");
   const testCollector = new MetricsCollector("test");
