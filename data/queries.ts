@@ -1,0 +1,123 @@
+export const QUERIES: string[] = [
+  // Greetings / small talk
+  "Hello, how are you?",
+  "Hi there!",
+  "Good morning",
+  "What can you help me with?",
+  "Who are you?",
+  "What is your name?",
+  "Tell me a joke",
+  "How's the weather today?",
+
+  // Account / profile
+  "How do I reset my password?",
+  "I forgot my username",
+  "How do I update my email address?",
+  "Can I change my phone number?",
+  "How do I delete my account?",
+  "How do I enable two-factor authentication?",
+  "Why is my account locked?",
+  "I can't log in to my account",
+
+  // Billing / payments
+  "What payment methods do you accept?",
+  "How do I update my credit card?",
+  "I was charged twice this month",
+  "Can I get a refund?",
+  "Where is my invoice?",
+  "How do I cancel my subscription?",
+  "What is the price of the premium plan?",
+  "Do you offer discounts for annual billing?",
+  "How do I apply a promo code?",
+
+  // Product / features
+  "What features are included in the free tier?",
+  "How do I export my data?",
+  "Can I import data from another tool?",
+  "Is there a mobile app?",
+  "Does this work offline?",
+  "What are the system requirements?",
+  "Is there an API available?",
+  "How do I integrate with Slack?",
+  "Can I connect this to Microsoft Teams?",
+  "Is there a dark mode?",
+
+  // Technical / troubleshooting
+  "The app is not loading",
+  "I'm getting an error message",
+  "Why is the service slow?",
+  "How do I clear my cache?",
+  "The page is showing a 404 error",
+  "I can't upload a file",
+  "The video is not playing",
+  "My notifications are not working",
+  "I'm not receiving emails",
+  "How do I report a bug?",
+
+  // Shipping / orders
+  "Where is my order?",
+  "How do I track my shipment?",
+  "Can I change my delivery address?",
+  "How long does shipping take?",
+  "Do you ship internationally?",
+  "What is your return policy?",
+  "How do I initiate a return?",
+  "My package arrived damaged",
+  "I received the wrong item",
+  "My order was cancelled unexpectedly",
+
+  // HR / employee self-service
+  "How many vacation days do I have left?",
+  "How do I submit a time-off request?",
+  "When is the next performance review?",
+  "Where can I find the employee handbook?",
+  "How do I update my direct deposit information?",
+  "What is the parental leave policy?",
+  "How do I enroll in health insurance?",
+  "Who is my HR contact?",
+  "How do I request a letter of employment?",
+  "When is the next company holiday?",
+
+  // IT / help desk
+  "How do I connect to the VPN?",
+  "My computer is running slowly",
+  "How do I request a new laptop?",
+  "I need access to a shared drive",
+  "How do I join a video call?",
+  "My email is full",
+  "How do I set up a printer?",
+  "I lost access to a system",
+  "How do I create a support ticket?",
+  "What is the Wi-Fi password?",
+
+  // Knowledge base / documentation
+  "Where can I find documentation?",
+  "Is there a getting started guide?",
+  "Do you have a video tutorial?",
+  "Where is the user manual?",
+  "How do I search for articles?",
+
+  // Complex / multi-step
+  "I need to cancel my account and get a refund for the last three months",
+  "How do I migrate my data from the old system to the new one?",
+  "I want to upgrade my plan and add two more users",
+  "Can you walk me through setting up the integration step by step?",
+  "What happens to my data when my subscription expires?",
+  "I'm a new user — what should I do first?",
+  "How do I set up automatic backups?",
+  "Can I share my account with a colleague?",
+  "I want to downgrade my plan but keep my existing data",
+  "What is the difference between the Standard and Enterprise plans?",
+
+  // Edge / adversarial
+  "asdfghjkl",
+  "!@#$%^&*()",
+  "Can you repeat that?",
+  "I don't understand",
+  "That's not what I asked",
+  "Never mind",
+  "Stop",
+  "Help",
+  "I need to speak to a human",
+  "Thank you, goodbye",
+];
