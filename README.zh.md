@@ -8,7 +8,18 @@
 
 - Node.js 18+
 - 已启用 DirectLine 通道的 Copilot Studio 智能体
-- 在 Copilot Studio **配置 Web 安全性** 页面获取的 DirectLine 密钥
+- 从 Copilot Studio 获取的 DirectLine 密钥（见下方说明）
+
+## 获取 DirectLine 密钥
+
+1. 打开 [Copilot Studio](https://copilotstudio.microsoft.com)，选择你的智能体
+2. 进入 **设置** → **频道** → **DirectLine**
+3. 在 **Web 通道安全性** 下，点击 **配置 Web 安全性**（或直接进入 **设置** → **配置 Web 安全性**）
+4. 复制页面上显示的任意一个密钥
+
+> 密钥是一串较长的字母数字组合，请像密码一样保管，不要提交到代码仓库。本项目的 `.gitignore` 已将 `.env` 排除在外，可防止意外泄露。
+
+参考文档：[配置 Web 通道安全性](https://learn.microsoft.com/zh-cn/microsoft-copilot-studio/configure-web-security)
 
 ## 安装
 

@@ -8,7 +8,18 @@ Each virtual user starts an independent conversation, sends a query, polls for t
 
 - Node.js 18+
 - A Copilot Studio agent with the DirectLine channel enabled
-- A DirectLine secret from the **Configure web security** page in Copilot Studio
+- A DirectLine secret from Copilot Studio (see below)
+
+## Getting Your DirectLine Secret
+
+1. Open [Copilot Studio](https://copilotstudio.microsoft.com) and select your agent
+2. Go to **Settings** → **Channels** → **DirectLine**
+3. Under **Web channel security**, click **Configure web security** (or go to **Settings** → **Configure web security** directly)
+4. Copy one of the secrets shown on the page
+
+> The secret looks like a long alphanumeric string. Treat it like a password — do not commit it to source control. This project's `.gitignore` already excludes `.env` to prevent accidental exposure.
+
+Reference: [Configure web channel security](https://learn.microsoft.com/en-us/microsoft-copilot-studio/configure-web-security)
 
 ## Setup
 
