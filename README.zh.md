@@ -57,6 +57,7 @@ npm start
 | `DIRECTLINE_BASE_URL` | `https://directline.botframework.com/v3/directline` | DirectLine 端点，国家云环境可覆盖此值 |
 | `TARGET_CONCURRENCY` | `20` | 并发虚拟用户数 |
 | `SKIP_WARMUP` | `false` | 设为 `true` 可跳过预热阶段，直接进入正式测试 |
+| `WARMUP_COOLDOWN_SECONDS` | `120` | 预热与正式测试之间的等待时长（2 分钟）。设为 `0` 可禁用。`SKIP_WARMUP=true` 时自动跳过 |
 | `WARMUP_DURATION_SECONDS` | `300` | 预热阶段时长（5 分钟）。虚拟用户在此期间逐步增加 |
 | `TEST_DURATION_SECONDS` | `600` | 正式测试阶段时长（10 分钟） |
 | `MAX_REQUESTS_PER_MINUTE` | `100` | 全局请求速率限制（所有虚拟用户共享），防止触发服务限流 |
@@ -70,6 +71,9 @@ npm start
 
 **预热阶段**（默认 5 分钟）
 从 1 个虚拟用户开始，按固定间隔逐步增加，直到达到 `TARGET_CONCURRENCY`。用于在正式测试前预热机器人底层基础设施。
+
+**冷却阶段**（默认 2 分钟）
+预热与正式测试之间的可配置暂停时间，让机器人在正式计量前充分稳定。`SKIP_WARMUP=true` 或 `WARMUP_COOLDOWN_SECONDS=0` 时自动跳过。
 
 **正式测试阶段**（默认 10 分钟）
 所有 `TARGET_CONCURRENCY` 个虚拟用户同时启动（各错开约 100ms，避免瞬时洪峰）。每个用户持续循环发起对话，直到计时结束。

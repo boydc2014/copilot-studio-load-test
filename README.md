@@ -57,6 +57,7 @@ All configuration is via environment variables in `.env`.
 | `DIRECTLINE_BASE_URL` | `https://directline.botframework.com/v3/directline` | DirectLine endpoint — override for sovereign clouds |
 | `TARGET_CONCURRENCY` | `20` | Number of simultaneous virtual users |
 | `SKIP_WARMUP` | `false` | Set to `true` to skip the warm-up phase and go straight to the real test |
+| `WARMUP_COOLDOWN_SECONDS` | `120` | Delay between warm-up and real test phases (2 minutes). Set to `0` to disable. Skipped automatically when `SKIP_WARMUP=true` |
 | `WARMUP_DURATION_SECONDS` | `300` | Warm-up phase duration (5 minutes). Workers ramp up one at a time over this window |
 | `TEST_DURATION_SECONDS` | `600` | Real test phase duration (10 minutes) |
 | `MAX_REQUESTS_PER_MINUTE` | `100` | Global rate limit across all workers. Prevents hitting service throttle limits |
@@ -70,6 +71,9 @@ All configuration is via environment variables in `.env`.
 
 **Warm-up** (default 5 min)
 Starts with 1 worker and adds one more at regular intervals until `TARGET_CONCURRENCY` is reached. This primes the bot's underlying infrastructure before the real test begins.
+
+**Cooldown** (default 2 min)
+A configurable pause between warm-up and the real test. Gives the bot time to settle before measurements begin. Skipped when `SKIP_WARMUP=true` or `WARMUP_COOLDOWN_SECONDS=0`.
 
 **Real test** (default 10 min)
 All `TARGET_CONCURRENCY` workers start together (staggered by ~100ms each to avoid a thundering herd). Each worker runs conversations back-to-back until the timer expires.
