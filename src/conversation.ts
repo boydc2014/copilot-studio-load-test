@@ -6,7 +6,11 @@ import {
   createConversation,
   sendActivity,
   getActivities,
+  sendWebchatJoin,
+  sendTokenExchange,
+  findOAuthCard,
 } from "./directline";
+import { getOAuthToken } from "./auth";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,6 +45,150 @@ export async function runConversation(
     };
   }
 
+  // Main polling watermark — advanced by SSO steps so the query loop only
+  // sees activities that arrive after the SSO pre-flight is complete.
+  let watermark: string | undefined = undefined;
+
+  // SSO pre-flight
+  if (config.ssoEnabled) {
+    // Step 1: acquire OAuth token
+    let oauthToken: string;
+    try {
+      oauthToken = await getOAuthToken(config);
+    } catch (err) {
+      return {
+        phase,
+        status: "error",
+        query,
+        latencyMs: Date.now() - startedAt,
+        errorMessage: `SSO token acquisition failed: ${(err as Error).message}`,
+        conversationId,
+        startedAt,
+      };
+    }
+
+    // Step 2: send webchat/join event to trigger the bot's SSO topic
+    try {
+      await sendWebchatJoin(
+        config.directlineBaseUrl,
+        token,
+        conversationId,
+        userId
+      );
+    } catch (err) {
+      return {
+        phase,
+        status: "error",
+        query,
+        latencyMs: Date.now() - startedAt,
+        errorMessage: `SSO pre-flight failed: webchat/join error: ${(err as Error).message}`,
+        conversationId,
+        startedAt,
+      };
+    }
+
+    // Step 3: poll for OAuthCard from bot
+    const ssoDeadline = Date.now() + config.ssoTimeoutMs;
+    const ssoActivities: DirectLineActivity[] = [];
+    let oauthCard: { activity: DirectLineActivity; connectionName: string } | null = null;
+
+    while (Date.now() < ssoDeadline) {
+      await sleep(config.pollIntervalMs);
+      try {
+        const activitySet = await getActivities(
+          config.directlineBaseUrl,
+          token,
+          conversationId,
+          watermark
+        );
+        watermark = activitySet.watermark;
+        ssoActivities.push(...activitySet.activities);
+        oauthCard = findOAuthCard(ssoActivities);
+        if (oauthCard) break;
+      } catch {
+        // transient error — keep polling
+      }
+    }
+
+    if (!oauthCard) {
+      return {
+        phase,
+        status: "error",
+        query,
+        latencyMs: Date.now() - startedAt,
+        errorMessage: "SSO pre-flight failed: no OAuthCard received",
+        conversationId,
+        startedAt,
+        activities: ssoActivities,
+      };
+    }
+
+    // Step 4: send token exchange
+    try {
+      await sendTokenExchange(
+        config.directlineBaseUrl,
+        token,
+        conversationId,
+        userId,
+        oauthCard.activity.id,
+        oauthCard.connectionName,
+        oauthToken
+      );
+    } catch (err) {
+      return {
+        phase,
+        status: "error",
+        query,
+        latencyMs: Date.now() - startedAt,
+        errorMessage: `SSO pre-flight failed: sendTokenExchange error: ${(err as Error).message}`,
+        conversationId,
+        startedAt,
+        activities: ssoActivities,
+      };
+    }
+
+    // Step 5: poll for invoke response with status 200
+    const exchangeDeadline = Date.now() + config.ssoTimeoutMs;
+
+    while (Date.now() < exchangeDeadline) {
+      await sleep(config.pollIntervalMs);
+      try {
+        const activitySet = await getActivities(
+          config.directlineBaseUrl,
+          token,
+          conversationId,
+          watermark
+        );
+        watermark = activitySet.watermark;
+        ssoActivities.push(...activitySet.activities);
+
+        const invokeResponse = activitySet.activities.find(
+          (a) => a.type === "invokeResponse" && a.value?.status === 200
+        );
+        if (invokeResponse) break;
+
+        // Check for non-200 invoke response indicating failure
+        const failedInvoke = activitySet.activities.find(
+          (a) => a.type === "invokeResponse" && a.value?.status !== undefined && a.value.status !== 200
+        );
+        if (failedInvoke) {
+          return {
+            phase,
+            status: "error",
+            query,
+            latencyMs: Date.now() - startedAt,
+            errorMessage: `SSO pre-flight failed: token exchange rejected (status ${failedInvoke.value?.status})`,
+            conversationId,
+            startedAt,
+            activities: ssoActivities,
+          };
+        }
+      } catch {
+        // transient error — keep polling
+      }
+    }
+  }
+
   // Send message — latency starts here
   const sendStartMs = Date.now();
   try {
@@ -65,7 +213,6 @@ export async function runConversation(
 
   // Poll for bot response
   const deadline = Date.now() + config.responseTimeoutMs;
-  let watermark: string | undefined = undefined;
   const allActivities: DirectLineActivity[] = [];
 
   while (Date.now() < deadline) {

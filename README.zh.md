@@ -179,6 +179,62 @@ results/
 ╚══════════════════════════════════════════════════╝
 ```
 
+## SSO 支持
+
+如果你的 Copilot Studio 智能体需要用户身份验证（SSO），可启用 SSO 模式来模拟已认证用户通过 DirectLine 通道进行交互。
+
+### 何时使用 SSO 模式
+
+当你的机器人在对话开始时触发登录主题（sign-in topic）时，请使用 SSO 模式。此时机器人会在响应正式查询前发送 OAuthCard。若不启用 SSO，每次对话都会因等待机器人完成认证步骤而超时。
+
+### 工作原理
+
+当 `SSO_ENABLED=true` 时，每次对话在发送正式查询前会执行 SSO 预处理流程：
+
+```
+1. POST /conversations?sendWelcomeMessage=true  → 机器人收到 conversationUpdate，触发登录主题
+2. 从 Azure AD 获取 OAuth2 令牌              → 在多次对话间缓存复用
+3. 轮询直到机器人发送 OAuthCard
+4. POST signin/tokenExchange invoke            → 向机器人交换令牌
+5. 轮询直到 invoke 响应状态为 200
+6. → 发送正式查询（延迟计时从此处开始）
+```
+
+延迟仍仅从用户查询开始计算，SSO 预处理时间不计入延迟。
+
+### 获取 Azure AD 凭据
+
+1. **SSO_TENANT_ID** — Azure AD 租户 GUID。在 **Azure 门户** → **Azure Active Directory** → **概述** → *租户 ID* 中查找。
+2. **SSO_CLIENT_ID** — 应用注册的客户端 ID。在 **Azure 门户** → **应用注册** 中找到你的机器人对应的应用注册，复制*应用程序（客户端）ID*。
+3. **SSO_CLIENT_SECRET** — 在 **应用注册** → 你的应用 → **证书和机密** → **新建客户端机密** 中创建。
+4. **SSO_SCOPE** — 请求的 OAuth 作用域。对于 Copilot Studio SSO，通常为 `api://<机器人应用ID>/.default`。
+
+### 授权类型说明
+
+| `SSO_GRANT_TYPE` | 适用场景 | 行为 |
+|---|---|---|
+| `device_code` *(默认)* | 普通交互式用户登录（支持 MFA） | CLI 打印 URL 和验证码；你在浏览器中完成一次登录；令牌在本次运行中缓存复用 |
+| `client_credentials` | 机器人接受应用级令牌（服务账号/非用户场景） | 使用客户端机密静默从 Azure AD 获取令牌 |
+| `password`（ROPC） | 有专用测试账号的自动化流水线（必须关闭 MFA） | 使用存储的用户名和密码静默获取令牌 |
+
+**Device Code** 是默认模式——无需存储凭据，支持 MFA，并使用与真实用户相同的身份提供者。
+
+> 使用 `device_code` 时，`SSO_CLIENT_SECRET` 非必填（公共客户端）。某些机密应用注册可能仍需要此字段——若 Azure AD 返回相关错误，请设置该变量。
+
+### SSO 环境变量
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `SSO_ENABLED` | `false` | 设为 `true` 以启用 SSO 模式 |
+| `SSO_TENANT_ID` | *(SSO 启用时必填)* | Azure AD 租户 GUID |
+| `SSO_CLIENT_ID` | *(SSO 启用时必填)* | 应用注册客户端 ID |
+| `SSO_SCOPE` | *(SSO 启用时必填)* | OAuth 作用域，例如 `api://你的机器人应用ID/.default` |
+| `SSO_GRANT_TYPE` | 自动检测 | `device_code`（默认）、`client_credentials` 或 `password` |
+| `SSO_CLIENT_SECRET` | *(空)* | `client_credentials` 和 `password` 时必填；`device_code` 时可选 |
+| `SSO_TIMEOUT_MS` | `10000` | 每个 SSO 轮询步骤的超时时间（毫秒） |
+| `SSO_USERNAME` | *(空)* | 测试用户 UPN——与 `SSO_PASSWORD` 同时设置时触发 `password` 授权 |
+| `SSO_PASSWORD` | *(空)* | `password` 授权模式的测试用户密码 |
+
 ## 自定义查询词库
 
 编辑 `data/queries.ts`，替换为与你的机器人相关的问题。词库大小不限，运行时随机抽取。

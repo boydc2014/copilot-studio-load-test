@@ -7,12 +7,25 @@ export interface DirectLineConversation {
   streamUrl?: string;
 }
 
+export interface OAuthCardContent {
+  connectionName: string;
+  text?: string;
+}
+
+export interface DirectLineAttachment {
+  contentType: string;
+  content: OAuthCardContent | unknown;
+}
+
 export interface DirectLineActivity {
   id: string;
   type: string;
   from: { id: string; role?: string };
   text?: string;
   timestamp: string;
+  name?: string;
+  attachments?: DirectLineAttachment[];
+  value?: { status?: number; [key: string]: unknown };
 }
 
 export interface DirectLineActivitySet {
@@ -39,6 +52,20 @@ export async function createConversation(
     `${baseUrl}/conversations`
   );
   return response.data;
+}
+
+export async function sendWebchatJoin(
+  baseUrl: string,
+  token: string,
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  const client = makeClient(token);
+  await client.post(`${baseUrl}/conversations/${conversationId}/activities`, {
+    type: "event",
+    name: "webchat/join",
+    from: { id: userId },
+  });
 }
 
 export async function sendActivity(
@@ -72,4 +99,42 @@ export async function getActivities(
     : `${baseUrl}/conversations/${conversationId}/activities`;
   const response = await client.get<DirectLineActivitySet>(url);
   return response.data;
+}
+
+export async function sendTokenExchange(
+  baseUrl: string,
+  token: string,
+  conversationId: string,
+  userId: string,
+  botActivityId: string,
+  connectionName: string,
+  oauthToken: string
+): Promise<void> {
+  const client = makeClient(token);
+  await client.post(`${baseUrl}/conversations/${conversationId}/activities`, {
+    type: "invoke",
+    name: "signin/tokenExchange",
+    from: { id: userId },
+    value: {
+      id: botActivityId,
+      connectionName,
+      token: oauthToken,
+    },
+  });
+}
+
+export function findOAuthCard(
+  activities: DirectLineActivity[]
+): { activity: DirectLineActivity; connectionName: string } | null {
+  for (const activity of activities) {
+    if (activity.type === "message" && activity.attachments) {
+      for (const attachment of activity.attachments) {
+        if (attachment.contentType === "application/vnd.microsoft.card.oauth") {
+          const content = attachment.content as OAuthCardContent;
+          return { activity, connectionName: content.connectionName };
+        }
+      }
+    }
+  }
+  return null;
 }

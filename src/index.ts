@@ -1,5 +1,6 @@
 import path from "path";
 import { loadConfig } from "./config";
+import { getOAuthToken } from "./auth";
 import { MetricsCollector } from "./metrics";
 import { runWarmupPhase, runTestPhase } from "./scheduler";
 import { printSummary, saveResults } from "./reporter";
@@ -18,11 +19,35 @@ async function main(): Promise<void> {
   console.log(`  Response Timeout  : ${config.responseTimeoutMs}ms`);
   console.log(`  Poll Interval     : ${config.pollIntervalMs}ms`);
   console.log(`  Query Pool Size   : ${QUERIES.length}`);
+  if (config.ssoEnabled) {
+    const grantLabel =
+      config.ssoGrantType === "device_code"
+        ? "DeviceCode"
+        : config.ssoGrantType === "password"
+          ? "ROPC"
+          : "ClientCredentials";
+    console.log(`  SSO               : ENABLED (${grantLabel})`);
+    console.log(`  SSO Tenant        : ${config.ssoTenantId}`);
+    console.log(`  SSO Timeout       : ${config.ssoTimeoutMs}ms`);
+  }
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const outputDir = path.join(path.dirname(config.outputFile), `run-${runId}`);
   console.log(`  Output Dir        : ${outputDir}`);
   console.log("=".repeat(52));
-  console.log();
+
+  // For device_code SSO, sign in once here before the test begins.
+  // The token is cached in auth.ts and reused (with silent refresh) for all conversations.
+  if (config.ssoEnabled && config.ssoGrantType === "device_code") {
+    try {
+      await getOAuthToken(config);
+      console.log("  Sign-in complete.\n");
+    } catch (err) {
+      console.error(`\nSSO sign-in failed: ${(err as Error).message}`);
+      process.exit(1);
+    }
+  } else {
+    console.log();
+  }
 
   // PHASE 1: WARM-UP
   const warmupCollector = new MetricsCollector("warmup");

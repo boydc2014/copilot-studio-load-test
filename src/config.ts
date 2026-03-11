@@ -13,11 +13,27 @@ export interface Config {
   responseTimeoutMs: number;
   maxRequestsPerMinute: number;
   outputFile: string;
+  ssoEnabled: boolean;
+  ssoGrantType: string;
+  ssoTenantId: string;
+  ssoClientId: string;
+  ssoClientSecret: string;
+  ssoScope: string;
+  ssoUsername: string;
+  ssoPassword: string;
+  ssoTimeoutMs: number;
 }
 
 function requireEnv(key: string): string {
   const val = process.env[key];
   if (!val) throw new Error(`Missing required environment variable: ${key}`);
+  return val;
+}
+
+function requireSsoEnv(key: string, ssoEnabled: boolean): string {
+  if (!ssoEnabled) return "";
+  const val = process.env[key];
+  if (!val) throw new Error(`SSO is enabled but ${key} is not set`);
   return val;
 }
 
@@ -30,6 +46,15 @@ function optionalInt(key: string, defaultVal: number): number {
 }
 
 export function loadConfig(): Config {
+  const ssoEnabled = process.env.SSO_ENABLED === "true";
+  const ssoUsername = process.env.SSO_USERNAME || "";
+  const ssoPassword = process.env.SSO_PASSWORD || "";
+  // Auto-detect grant type: explicit > ROPC (if username+password set) > device_code
+  const ssoGrantType =
+    process.env.SSO_GRANT_TYPE ||
+    (ssoUsername && ssoPassword ? "password" : "device_code");
+  // Client secret is required for client_credentials and password, optional for device_code
+  const needsClientSecret = ssoEnabled && ssoGrantType !== "device_code";
   return {
     directlineSecret: requireEnv("DIRECTLINE_SECRET"),
     directlineBaseUrl:
@@ -44,5 +69,16 @@ export function loadConfig(): Config {
     responseTimeoutMs: optionalInt("RESPONSE_TIMEOUT_MS", 30000),
     maxRequestsPerMinute: optionalInt("MAX_REQUESTS_PER_MINUTE", 100),
     outputFile: process.env.OUTPUT_FILE || "./results/load-test",
+    ssoEnabled,
+    ssoGrantType,
+    ssoTenantId: requireSsoEnv("SSO_TENANT_ID", ssoEnabled),
+    ssoClientId: requireSsoEnv("SSO_CLIENT_ID", ssoEnabled),
+    ssoClientSecret: needsClientSecret
+      ? requireSsoEnv("SSO_CLIENT_SECRET", true)
+      : process.env.SSO_CLIENT_SECRET || "",
+    ssoScope: requireSsoEnv("SSO_SCOPE", ssoEnabled),
+    ssoUsername,
+    ssoPassword,
+    ssoTimeoutMs: optionalInt("SSO_TIMEOUT_MS", 10000),
   };
 }

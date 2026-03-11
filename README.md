@@ -179,6 +179,62 @@ A summary table is printed at the end of each phase:
 ╚══════════════════════════════════════════════════╝
 ```
 
+## SSO Support
+
+If your Copilot Studio agent requires user authentication (SSO), enable SSO mode to simulate authenticated users over the DirectLine channel.
+
+### When to use SSO mode
+
+Use SSO mode when your bot has a sign-in topic triggered on conversation start — the bot sends an OAuthCard before responding to queries. Without SSO, every conversation would time out waiting for the bot to get past the authentication step.
+
+### How it works
+
+When `SSO_ENABLED=true`, each conversation performs an SSO pre-flight before sending the actual query:
+
+```
+1. POST /conversations?sendWelcomeMessage=true  → bot receives conversationUpdate, starts sign-in topic
+2. Acquire OAuth2 token from Azure AD           → cached across conversations
+3. Poll until bot sends OAuthCard
+4. POST signin/tokenExchange invoke             → exchange token with bot
+5. Poll until invoke response status 200
+6. → proceed to send query (latency measurement starts here)
+```
+
+Latency is still measured from the user query only — SSO setup is excluded.
+
+### Getting Azure AD credentials
+
+1. **SSO_TENANT_ID** — your Azure AD tenant GUID. Found in **Azure Portal** → **Azure Active Directory** → **Overview** → *Tenant ID*.
+2. **SSO_CLIENT_ID** — the app registration client ID. In Azure Portal go to **App registrations**, find your bot's app registration, copy the *Application (client) ID*.
+3. **SSO_CLIENT_SECRET** — create a secret under **App registrations** → your app → **Certificates & secrets** → **New client secret**.
+4. **SSO_SCOPE** — the OAuth scope to request. For Copilot Studio SSO this is typically `api://<bot-app-id>/.default`.
+
+### Grant types
+
+| `SSO_GRANT_TYPE` | When to use | What happens |
+|---|---|---|
+| `device_code` *(default)* | Normal interactive user sign-in (MFA supported) | CLI prints a URL + code; you open the browser, sign in once; token cached for the run |
+| `client_credentials` | Bot accepts app-level tokens (service account / non-user scenario) | Token acquired silently from Azure AD using client secret |
+| `password` (ROPC) | Automated pipelines with a dedicated test user; MFA must be off | Token acquired silently using stored username + password |
+
+**Device code** is the default — no credentials to store, supports MFA, and uses the same identity provider as your real users.
+
+> For `device_code`, `SSO_CLIENT_SECRET` is not required (public client). Some confidential app registrations may still require it — set it if Azure AD returns an error asking for it.
+
+### SSO environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `SSO_ENABLED` | `false` | Set to `true` to enable SSO mode |
+| `SSO_TENANT_ID` | *(required when SSO enabled)* | Azure AD tenant GUID |
+| `SSO_CLIENT_ID` | *(required when SSO enabled)* | App registration client ID |
+| `SSO_SCOPE` | *(required when SSO enabled)* | OAuth scope, e.g. `api://your-bot-app-id/.default` |
+| `SSO_GRANT_TYPE` | auto-detected | `device_code` (default), `client_credentials`, or `password` |
+| `SSO_CLIENT_SECRET` | *(empty)* | Required for `client_credentials` and `password`; optional for `device_code` |
+| `SSO_TIMEOUT_MS` | `10000` | Timeout for each SSO polling step (ms) |
+| `SSO_USERNAME` | *(empty)* | Test user UPN — triggers `password` grant when set together with `SSO_PASSWORD` |
+| `SSO_PASSWORD` | *(empty)* | Test user password for `password` grant |
+
 ## Customizing Queries
 
 Edit `data/queries.ts` to replace the default query pool with questions relevant to your bot. The pool can be any size — queries are sampled randomly at runtime.
