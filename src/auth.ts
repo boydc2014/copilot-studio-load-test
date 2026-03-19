@@ -5,6 +5,41 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+interface AzureErrorResponse {
+  error?: string;
+  error_description?: string;
+  error_codes?: number[];
+}
+
+function extractAzureError(err: unknown, step: string): Error {
+  const axiosErr = err as {
+    response?: { status?: number; data?: AzureErrorResponse };
+    message?: string;
+  };
+  const status = axiosErr.response?.status;
+  const data = axiosErr.response?.data;
+  const code = data?.error;
+  const description = data?.error_description?.split("\r\n")[0]; // first line only
+
+  let message = `SSO failed at [${step}]`;
+  if (status) message += ` — HTTP ${status}`;
+  if (code) message += ` (${code})`;
+  if (description) message += `: ${description}`;
+  if (!status && !code) message += `: ${(err as Error).message ?? "unknown error"}`;
+
+  // Actionable hints for common Azure AD errors
+  if (status === 401 || code === "unauthorized_client" || code === "invalid_client") {
+    message +=
+      "\n  → Fix: In Azure Portal, go to App registrations → your app → Authentication → enable 'Allow public client flows'";
+  } else if (code === "invalid_scope") {
+    message += "\n  → Fix: Check SSO_SCOPE — it must match a scope exposed by the target app registration";
+  } else if (code === "application_not_found" || status === 404) {
+    message += "\n  → Fix: Check SSO_CLIENT_ID and SSO_TENANT_ID";
+  }
+
+  return new Error(message);
+}
+
 let cachedToken: {
   accessToken: string;
   expiresAtMs: number;
@@ -40,11 +75,16 @@ async function performDeviceCodeFlow(config: Config): Promise<void> {
     client_id: config.ssoClientId,
     scope: config.ssoScope,
   });
-  const dcResponse = await axios.post(
-    `https://login.microsoftonline.com/${config.ssoTenantId}/oauth2/v2.0/devicecode`,
-    dcParams,
-    { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-  );
+  let dcResponse;
+  try {
+    dcResponse = await axios.post(
+      `https://login.microsoftonline.com/${config.ssoTenantId}/oauth2/v2.0/devicecode`,
+      dcParams,
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
+  } catch (err) {
+    throw extractAzureError(err, "device_code request");
+  }
   const { device_code, expires_in, interval, message } = dcResponse.data;
 
   // Azure AD formats `message` as:
@@ -90,7 +130,7 @@ async function performDeviceCodeFlow(config: Config): Promise<void> {
       if (error === "expired_token") {
         throw new Error("Device code expired — restart and try again");
       }
-      throw err;
+      throw extractAzureError(err, "token poll");
     }
   }
   throw new Error("Device code expired — restart and try again");
@@ -144,15 +184,6 @@ export async function getOAuthToken(config: Config): Promise<string> {
     };
     return cachedToken.accessToken;
   } catch (err: unknown) {
-    const axiosErr = err as {
-      response?: { data?: { error?: string; error_description?: string } };
-      message?: string;
-    };
-    const detail =
-      axiosErr.response?.data?.error_description ||
-      axiosErr.response?.data?.error ||
-      axiosErr.message ||
-      "unknown error";
-    throw new Error(`SSO token acquisition failed: ${detail}`);
+    throw extractAzureError(err, `token request (${config.ssoGrantType})`);
   }
 }
