@@ -220,9 +220,11 @@ Latency is still measured from the user query only — SSO setup is excluded.
 
 **Auth code (PKCE)** is the default — no credentials to store, supports MFA, and works with company policies that block device code flow.
 
-> **`auth_code` setup** — Register `http://localhost:3000/callback` (or `http://localhost:{SSO_REDIRECT_PORT}/callback`) as a redirect URI in **Azure Portal → App registrations → your app → Authentication → Add a platform → Mobile and desktop applications**.
-> - **Confidential client** (app has a secret): set `SSO_CLIENT_SECRET` — no other changes needed.
-> - **Public client** (no secret): leave `SSO_CLIENT_SECRET` unset and enable **Allow public client flows** in the Authentication blade.
+> **`auth_code` setup** — In **Azure Portal → App registrations → your client SSO app → Authentication**:
+> 1. Add a platform → **Mobile and desktop applications** → enter `http://localhost:3000/callback` (or `http://localhost:{SSO_REDIRECT_PORT}/callback`) as the redirect URI.
+> 2. Enable **Allow public client flows**.
+>
+> `SSO_CLIENT_SECRET` is not needed for this flow. Note: `SSO_CLIENT_ID` is your **client SSO app**, not the bot app — the bot app only appears as the audience in `SSO_SCOPE`.
 
 ### SSO environment variables
 

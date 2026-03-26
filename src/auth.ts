@@ -33,8 +33,7 @@ function extractAzureError(err: unknown, step: string): Error {
   // Actionable hints for common Azure AD errors
   if (status === 401 || code === "unauthorized_client" || code === "invalid_client") {
     message +=
-      "\n  → Fix (confidential client): set SSO_CLIENT_SECRET to your app's client secret" +
-      "\n  → Fix (public client): in Azure Portal, go to App registrations → your app → Authentication → enable 'Allow public client flows'";
+      "\n  → Fix: In Azure Portal, go to App registrations → your client SSO app → Authentication → enable 'Allow public client flows'";
   } else if (code === "invalid_scope") {
     message += "\n  → Fix: Check SSO_SCOPE — it must match a scope exposed by the target app registration";
   } else if (code === "application_not_found" || status === 404) {
