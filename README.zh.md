@@ -220,9 +220,9 @@ results/
 
 **授权码（PKCE）** 是默认模式——无需存储凭据，支持 MFA，且兼容禁用设备码的公司策略。
 
-> **`auth_code` 配置** — 使用此流程前，需在 **Azure 门户 → 应用注册 → 你的应用 → 身份验证 → 添加平台 → 移动和桌面应用程序** 中注册 `http://localhost:3000/callback`（或 `http://localhost:{SSO_REDIRECT_PORT}/callback`）为重定向 URI。无需 `SSO_CLIENT_SECRET`（使用 PKCE）。
-
-> 使用 `device_code` 和 `auth_code` 时，`SSO_CLIENT_SECRET` 均非必填（公共客户端）。某些机密应用注册可能仍需要此字段——若 Azure AD 返回相关错误，请设置该变量。
+> **`auth_code` 配置** — 在 **Azure 门户 → 应用注册 → 你的应用 → 身份验证 → 添加平台 → 移动和桌面应用程序** 中注册 `http://localhost:3000/callback`（或 `http://localhost:{SSO_REDIRECT_PORT}/callback`）为重定向 URI。
+> - **机密客户端**（应用有客户端密钥）：设置 `SSO_CLIENT_SECRET`，无需其他配置。
+> - **公共客户端**（无客户端密钥）：不设置 `SSO_CLIENT_SECRET`，并在身份验证页面启用**允许公共客户端流**。
 
 ### SSO 环境变量
 

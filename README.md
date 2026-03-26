@@ -220,9 +220,9 @@ Latency is still measured from the user query only — SSO setup is excluded.
 
 **Auth code (PKCE)** is the default — no credentials to store, supports MFA, and works with company policies that block device code flow.
 
-> **`auth_code` setup** — Before using this flow, register `http://localhost:3000/callback` (or `http://localhost:{SSO_REDIRECT_PORT}/callback`) as a redirect URI in **Azure Portal → App registrations → your app → Authentication → Add a platform → Mobile and desktop applications**. `SSO_CLIENT_SECRET` is not required (uses PKCE).
-
-> For `device_code` and `auth_code`, `SSO_CLIENT_SECRET` is not required (public client). Some confidential app registrations may still require it — set it if Azure AD returns an error asking for it.
+> **`auth_code` setup** — Register `http://localhost:3000/callback` (or `http://localhost:{SSO_REDIRECT_PORT}/callback`) as a redirect URI in **Azure Portal → App registrations → your app → Authentication → Add a platform → Mobile and desktop applications**.
+> - **Confidential client** (app has a secret): set `SSO_CLIENT_SECRET` — no other changes needed.
+> - **Public client** (no secret): leave `SSO_CLIENT_SECRET` unset and enable **Allow public client flows** in the Authentication blade.
 
 ### SSO environment variables
 
