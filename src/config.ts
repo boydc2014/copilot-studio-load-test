@@ -22,6 +22,7 @@ export interface Config {
   ssoUsername: string;
   ssoPassword: string;
   ssoTimeoutMs: number;
+  ssoRedirectPort: number;
 }
 
 function requireEnv(key: string): string {
@@ -53,8 +54,11 @@ export function loadConfig(): Config {
   const ssoGrantType =
     process.env.SSO_GRANT_TYPE ||
     (ssoUsername && ssoPassword ? "password" : "device_code");
-  // Client secret is required for client_credentials and password, optional for device_code
-  const needsClientSecret = ssoEnabled && ssoGrantType !== "device_code";
+  // Client secret is required for client_credentials and password; optional for device_code and auth_code (PKCE)
+  const needsClientSecret =
+    ssoEnabled &&
+    ssoGrantType !== "device_code" &&
+    ssoGrantType !== "auth_code";
   return {
     directlineSecret: requireEnv("DIRECTLINE_SECRET"),
     directlineBaseUrl:
@@ -80,5 +84,6 @@ export function loadConfig(): Config {
     ssoUsername,
     ssoPassword,
     ssoTimeoutMs: optionalInt("SSO_TIMEOUT_MS", 10000),
+    ssoRedirectPort: optionalInt("SSO_REDIRECT_PORT", 3000),
   };
 }
