@@ -213,16 +213,16 @@ results/
 
 | `SSO_GRANT_TYPE` | 适用场景 | 行为 |
 |---|---|---|
-| `device_code` *(默认)* | 普通交互式用户登录（支持 MFA） | CLI 打印 URL 和验证码；你在浏览器中完成一次登录；令牌在本次运行中缓存复用 |
-| `auth_code` | 公司策略禁用设备码时的用户登录（支持 MFA） | CLI 打开浏览器标签页；你完成登录后 Azure AD 自动重定向回 `localhost` |
+| `auth_code` *(默认)* | 交互式用户登录（支持 MFA）；即使公司禁用设备码也可使用 | CLI 打开浏览器标签页；你完成登录后 Azure AD 自动重定向回 `localhost` |
+| `device_code` | 通过 URL 和验证码完成的交互式用户登录（支持 MFA） | CLI 打印 URL 和验证码；你在浏览器中完成一次登录；令牌在本次运行中缓存复用 |
 | `client_credentials` | 机器人接受应用级令牌（服务账号/非用户场景） | 使用客户端机密静默从 Azure AD 获取令牌 |
 | `password`（ROPC） | 有专用测试账号的自动化流水线（必须关闭 MFA） | 使用存储的用户名和密码静默获取令牌 |
 
-**Device Code** 是默认模式——无需存储凭据，支持 MFA，并使用与真实用户相同的身份提供者。若公司禁用设备码，请改用 `auth_code`——两者特性相同，但通过浏览器重定向完成认证。
+**授权码（PKCE）** 是默认模式——无需存储凭据，支持 MFA，且兼容禁用设备码的公司策略。
 
 > **`auth_code` 配置** — 使用此流程前，需在 **Azure 门户 → 应用注册 → 你的应用 → 身份验证 → 添加平台 → 移动和桌面应用程序** 中注册 `http://localhost:3000/callback`（或 `http://localhost:{SSO_REDIRECT_PORT}/callback`）为重定向 URI。无需 `SSO_CLIENT_SECRET`（使用 PKCE）。
 
-> 使用 `device_code` 时，`SSO_CLIENT_SECRET` 非必填（公共客户端）。某些机密应用注册可能仍需要此字段——若 Azure AD 返回相关错误，请设置该变量。
+> 使用 `device_code` 和 `auth_code` 时，`SSO_CLIENT_SECRET` 均非必填（公共客户端）。某些机密应用注册可能仍需要此字段——若 Azure AD 返回相关错误，请设置该变量。
 
 ### SSO 环境变量
 
@@ -232,7 +232,7 @@ results/
 | `SSO_TENANT_ID` | *(SSO 启用时必填)* | Azure AD 租户 GUID |
 | `SSO_CLIENT_ID` | *(SSO 启用时必填)* | 应用注册客户端 ID |
 | `SSO_SCOPE` | *(SSO 启用时必填)* | OAuth 作用域，例如 `api://你的机器人应用ID/.default` |
-| `SSO_GRANT_TYPE` | 自动检测 | `device_code`（默认）、`auth_code`、`client_credentials` 或 `password` |
+| `SSO_GRANT_TYPE` | 自动检测 | `auth_code`（默认）、`device_code`、`client_credentials` 或 `password` |
 | `SSO_CLIENT_SECRET` | *(空)* | `client_credentials` 和 `password` 时必填；`device_code` 和 `auth_code` 时可选 |
 | `SSO_TIMEOUT_MS` | `10000` | 每个 SSO 轮询步骤的超时时间（毫秒） |
 | `SSO_REDIRECT_PORT` | `3000` | `auth_code` 回调服务器的本地端口 |

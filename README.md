@@ -213,16 +213,16 @@ Latency is still measured from the user query only — SSO setup is excluded.
 
 | `SSO_GRANT_TYPE` | When to use | What happens |
 |---|---|---|
-| `device_code` *(default)* | Normal interactive user sign-in (MFA supported) | CLI prints a URL + code; you open the browser, sign in once; token cached for the run |
-| `auth_code` | User sign-in when device code is blocked by company policy (MFA supported) | CLI opens a browser tab; you sign in; Azure AD redirects back to `localhost` automatically |
+| `auth_code` *(default)* | Interactive user sign-in (MFA supported); works even when device code is blocked | CLI opens a browser tab; you sign in; Azure AD redirects back to `localhost` automatically |
+| `device_code` | Interactive user sign-in via URL + code (MFA supported) | CLI prints a URL + code; you open the browser, sign in once; token cached for the run |
 | `client_credentials` | Bot accepts app-level tokens (service account / non-user scenario) | Token acquired silently from Azure AD using client secret |
 | `password` (ROPC) | Automated pipelines with a dedicated test user; MFA must be off | Token acquired silently using stored username + password |
 
-**Device code** is the default — no credentials to store, supports MFA, and uses the same identity provider as your real users. If your company blocks device code, use `auth_code` instead — it has the same properties but redirects through the browser.
+**Auth code (PKCE)** is the default — no credentials to store, supports MFA, and works with company policies that block device code flow.
 
 > **`auth_code` setup** — Before using this flow, register `http://localhost:3000/callback` (or `http://localhost:{SSO_REDIRECT_PORT}/callback`) as a redirect URI in **Azure Portal → App registrations → your app → Authentication → Add a platform → Mobile and desktop applications**. `SSO_CLIENT_SECRET` is not required (uses PKCE).
 
-> For `device_code`, `SSO_CLIENT_SECRET` is not required (public client). Some confidential app registrations may still require it — set it if Azure AD returns an error asking for it.
+> For `device_code` and `auth_code`, `SSO_CLIENT_SECRET` is not required (public client). Some confidential app registrations may still require it — set it if Azure AD returns an error asking for it.
 
 ### SSO environment variables
 
@@ -232,7 +232,7 @@ Latency is still measured from the user query only — SSO setup is excluded.
 | `SSO_TENANT_ID` | *(required when SSO enabled)* | Azure AD tenant GUID |
 | `SSO_CLIENT_ID` | *(required when SSO enabled)* | App registration client ID |
 | `SSO_SCOPE` | *(required when SSO enabled)* | OAuth scope, e.g. `api://your-bot-app-id/.default` |
-| `SSO_GRANT_TYPE` | auto-detected | `device_code` (default), `auth_code`, `client_credentials`, or `password` |
+| `SSO_GRANT_TYPE` | auto-detected | `auth_code` (default), `device_code`, `client_credentials`, or `password` |
 | `SSO_CLIENT_SECRET` | *(empty)* | Required for `client_credentials` and `password`; optional for `device_code` and `auth_code` |
 | `SSO_TIMEOUT_MS` | `10000` | Timeout for each SSO polling step (ms) |
 | `SSO_REDIRECT_PORT` | `3000` | Local port for the `auth_code` callback server |

@@ -50,10 +50,10 @@ export function loadConfig(): Config {
   const ssoEnabled = process.env.SSO_ENABLED === "true";
   const ssoUsername = process.env.SSO_USERNAME || "";
   const ssoPassword = process.env.SSO_PASSWORD || "";
-  // Auto-detect grant type: explicit > ROPC (if username+password set) > device_code
+  // Auto-detect grant type: explicit > ROPC (if username+password set) > auth_code
   const ssoGrantType =
     process.env.SSO_GRANT_TYPE ||
-    (ssoUsername && ssoPassword ? "password" : "device_code");
+    (ssoUsername && ssoPassword ? "password" : "auth_code");
   // Client secret is required for client_credentials and password; optional for device_code and auth_code (PKCE)
   const needsClientSecret =
     ssoEnabled &&
