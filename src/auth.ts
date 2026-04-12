@@ -249,6 +249,17 @@ async function performAuthCodeFlow(config: Config): Promise<void> {
   }
 }
 
+export function getUserIdFromToken(token: string): string {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64url").toString("utf8")
+    );
+    return payload.oid ?? payload.sub ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export async function getOAuthToken(config: Config): Promise<string> {
   // Return cached token if still valid
   if (cachedToken && Date.now() < cachedToken.expiresAtMs) {

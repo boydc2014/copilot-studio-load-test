@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from "axios";
+import crypto from "crypto";
 
 export interface DirectLineConversation {
   conversationId: string;
@@ -54,17 +55,39 @@ export async function createConversation(
   return response.data;
 }
 
-export async function sendWebchatJoin(
+export async function sendStartConversation(
   baseUrl: string,
   token: string,
   conversationId: string,
   userId: string
 ): Promise<void> {
   const client = makeClient(token);
+  const clientActivityID = crypto.randomBytes(8).toString("hex").slice(0, 11);
   await client.post(`${baseUrl}/conversations/${conversationId}/activities`, {
     type: "event",
-    name: "webchat/join",
-    from: { id: userId },
+    name: "startConversation",
+    from: { id: userId, name: "" },
+    locale: "en-US",
+    channelData: {
+      postBack: true,
+      customData: { system: "d365" },
+      clientActivityID,
+    },
+    entities: [
+      {
+        type: "ClientCapabilities",
+        requiresBotState: true,
+        supportsListening: true,
+        supportsTts: true,
+      },
+    ],
+    attachments: [],
+    membersAdded: [],
+    membersRemoved: [],
+    reactionsAdded: [],
+    reactionsRemoved: [],
+    listenFor: [],
+    textHighlights: [],
   });
 }
 
