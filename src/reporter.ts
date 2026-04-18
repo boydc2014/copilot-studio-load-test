@@ -41,8 +41,16 @@ export function printSummary(metrics: AggregateMetrics): void {
   console.log(`╠${line}╣`);
   console.log(row("Duration", formatDuration(metrics.durationMs)));
   console.log(row("Total Conversations", String(metrics.totalConversations)));
+  const shallowPct =
+    metrics.successCount > 0
+      ? ((metrics.shallowCount / metrics.successCount) * 100).toFixed(1)
+      : "0.0";
+
   console.log(
     row("Successful", `${metrics.successCount}  (${successPct}%)`)
+  );
+  console.log(
+    row("  Shallow (<2s)", `${metrics.shallowCount}  (${shallowPct}% of success)`)
   );
   console.log(
     row("Timed Out", `${metrics.timeoutCount}  (${timeoutPct}%)`)
@@ -50,13 +58,24 @@ export function printSummary(metrics: AggregateMetrics): void {
   console.log(row("Errors", `${metrics.errorCount}  (${errorPct}%)`));
   console.log(row("Throughput", `${metrics.throughputRps.toFixed(2)} req/s`));
   console.log(`╠${line}╣`);
-  console.log(row("LATENCY (ms)", ""));
+  const fullAICount = metrics.successCount - metrics.shallowCount;
+  console.log(row(`LATENCY — Full AI (${fullAICount})`, "(ms)"));
   console.log(row("  Min", String(metrics.latency.min)));
   console.log(row("  Mean", String(metrics.latency.mean)));
   console.log(row("  p50", String(metrics.latency.p50)));
   console.log(row("  p95", String(metrics.latency.p95)));
   console.log(row("  p99", String(metrics.latency.p99)));
   console.log(row("  Max", String(metrics.latency.max)));
+  if (metrics.shallowCount > 0) {
+    console.log(`╠${line}╣`);
+    console.log(row(`LATENCY — Shallow (${metrics.shallowCount})`, "(ms)"));
+    console.log(row("  Min", String(metrics.shallowLatency.min)));
+    console.log(row("  Mean", String(metrics.shallowLatency.mean)));
+    console.log(row("  p50", String(metrics.shallowLatency.p50)));
+    console.log(row("  p95", String(metrics.shallowLatency.p95)));
+    console.log(row("  p99", String(metrics.shallowLatency.p99)));
+    console.log(row("  Max", String(metrics.shallowLatency.max)));
+  }
   console.log(`╚${line}╝\n`);
 }
 
@@ -82,6 +101,7 @@ export async function saveResults(
     "phase",
     "startedAt",
     "status",
+    "shallow",
     "latencyMs",
     "query",
     "conversationId",
@@ -92,6 +112,7 @@ export async function saveResults(
       r.phase,
       r.startedAt,
       r.status,
+      r.shallow ? "true" : "false",
       r.latencyMs,
       `"${r.query.replace(/"/g, '""')}"`,
       r.conversationId ?? "",

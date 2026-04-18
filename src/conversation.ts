@@ -204,9 +204,18 @@ export async function runConversation(
     };
   }
 
-  // Poll for bot response
-  const deadline = Date.now() + config.responseTimeoutMs;
+  // Poll for bot response.
+  // Once the first bot message arrives, extend the deadline by 20s to capture
+  // any follow-up messages (e.g. a "please hold on" card followed by the full AI response).
+  const CONTINUE_AFTER_FIRST_REPLY_MS = 30_000;
+  const BOT_MESSAGE_TARGET = 2;
+  const SHALLOW_THRESHOLD_MS = 2_000;
+
+  let deadline = Date.now() + config.responseTimeoutMs;
   const allActivities: DirectLineActivity[] = [];
+  let firstReplyReceivedAt: number | null = null;
+  let lastBotMessageTimestamp: number | null = null;
+  let totalBotMessages = 0;
 
   while (Date.now() < deadline) {
     await sleep(config.pollIntervalMs);
@@ -227,22 +236,38 @@ export async function runConversation(
     watermark = activitySet.watermark;
     allActivities.push(...activitySet.activities);
 
-    const botReplies = activitySet.activities.filter(
+    const botMessages = activitySet.activities.filter(
       (a) => a.type === "message" && a.from.role === "bot"
     );
 
-    if (botReplies.length > 0) {
-      const botTimestamp = new Date(botReplies[0].timestamp).getTime();
-      return {
-        phase,
-        status: "success",
-        query,
-        latencyMs: botTimestamp - sendStartMs,
-        conversationId,
-        startedAt,
-        activities: allActivities,
-      };
+    if (botMessages.length > 0) {
+      if (firstReplyReceivedAt === null) {
+        firstReplyReceivedAt = Date.now();
+        // Extend deadline to allow time for follow-up messages
+        deadline = Math.max(deadline, firstReplyReceivedAt + CONTINUE_AFTER_FIRST_REPLY_MS);
+      }
+      totalBotMessages += botMessages.length;
+      lastBotMessageTimestamp = new Date(
+        botMessages[botMessages.length - 1].timestamp
+      ).getTime();
+
+      // Stop early once we have received the expected number of messages
+      if (totalBotMessages >= BOT_MESSAGE_TARGET) break;
     }
+  }
+
+  if (lastBotMessageTimestamp !== null) {
+    const latencyMs = lastBotMessageTimestamp - sendStartMs;
+    return {
+      phase,
+      status: "success",
+      query,
+      latencyMs,
+      shallow: latencyMs < SHALLOW_THRESHOLD_MS,
+      conversationId,
+      startedAt,
+      activities: allActivities,
+    };
   }
 
   return {

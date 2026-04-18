@@ -7,6 +7,7 @@ export interface ConversationResult {
   status: ConversationStatus;
   query: string;
   latencyMs: number;
+  shallow?: boolean; // true when latency < 2s — agent likely did not invoke full AI flow
   errorMessage?: string;
   conversationId?: string;
   startedAt: number;
@@ -28,9 +29,11 @@ export interface AggregateMetrics {
   successCount: number;
   timeoutCount: number;
   errorCount: number;
+  shallowCount: number; // successful but latency < 2s — agent likely skipped full AI flow
   successRate: number;
   throughputRps: number;
-  latency: PercentileStats;
+  latency: PercentileStats;        // full AI responses only (non-shallow)
+  shallowLatency: PercentileStats; // shallow responses only
   durationMs: number;
   startedAt: number;
   endedAt: number;
@@ -78,8 +81,15 @@ export class MetricsCollector {
     const successful = this.results.filter((r) => r.status === "success");
     const timeouts = this.results.filter((r) => r.status === "timeout");
     const errors = this.results.filter((r) => r.status === "error");
+    const shallow = successful.filter((r) => r.shallow);
 
-    const sortedLatencies = successful
+    const fullAI = successful.filter((r) => !r.shallow);
+
+    const sortedLatencies = fullAI
+      .map((r) => r.latencyMs)
+      .sort((a, b) => a - b);
+
+    const sortedShallowLatencies = shallow
       .map((r) => r.latencyMs)
       .sort((a, b) => a - b);
 
@@ -97,9 +107,11 @@ export class MetricsCollector {
       successCount: successful.length,
       timeoutCount: timeouts.length,
       errorCount: errors.length,
+      shallowCount: shallow.length,
       successRate,
       throughputRps,
       latency: computePercentiles(sortedLatencies),
+      shallowLatency: computePercentiles(sortedShallowLatencies),
       durationMs,
       startedAt: this.phaseStartMs,
       endedAt,
