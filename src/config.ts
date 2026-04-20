@@ -11,6 +11,7 @@ export interface Config {
   testDurationMs: number;
   pollIntervalMs: number;
   responseTimeoutMs: number;
+  continueAfterFirstReplyMs: number;
   maxRequestsPerMinute: number;
   outputFile: string;
   ssoEnabled: boolean;
@@ -71,6 +72,7 @@ export function loadConfig(): Config {
     testDurationMs: optionalInt("TEST_DURATION_SECONDS", 600) * 1000,
     pollIntervalMs: optionalInt("POLL_INTERVAL_MS", 1000),
     responseTimeoutMs: optionalInt("RESPONSE_TIMEOUT_MS", 30000),
+    continueAfterFirstReplyMs: optionalInt("CONTINUE_AFTER_FIRST_REPLY_MS", 30000),
     maxRequestsPerMinute: optionalInt("MAX_REQUESTS_PER_MINUTE", 100),
     outputFile: process.env.OUTPUT_FILE || "./results/load-test",
     ssoEnabled,

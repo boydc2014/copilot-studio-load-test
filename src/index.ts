@@ -17,6 +17,7 @@ async function main(): Promise<void> {
   console.log(`  Warm-up Duration  : ${config.warmupDurationMs / 1000}s`);
   console.log(`  Test Duration     : ${config.testDurationMs / 1000}s`);
   console.log(`  Response Timeout  : ${config.responseTimeoutMs}ms`);
+  console.log(`  Continue After 1st: ${config.continueAfterFirstReplyMs}ms`);
   console.log(`  Poll Interval     : ${config.pollIntervalMs}ms`);
   console.log(`  Query Pool Size   : ${QUERIES.length}`);
   if (config.ssoEnabled) {
